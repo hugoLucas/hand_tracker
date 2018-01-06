@@ -6,11 +6,8 @@ import shutil
 import csv
 import os
 
+import preprocessing.constants as const
 
-IMG_ROOT_FOLDER = '_LABELLED_SAMPLES/'
-LABELS_FILE = 'polygons.mat'
-TRAIN_DIRECTORY = 'train/'
-TEST_DIRECTORY = 'test/'
 
 TRAIN_PROB = 0.80
 TRAIN_SET = {}
@@ -33,7 +30,7 @@ class ReadableDir(argparse.Action):
 def get_image_root_directory(root_dir):
     if root_dir[-1] != '/':
         root_dir += '/'
-    return root_dir + IMG_ROOT_FOLDER
+    return root_dir + const.IMG_ROOT_FOLDER
 
 
 def process_images(root_dir):
@@ -46,13 +43,12 @@ def process_images(root_dir):
         polygons, row_number = load_labels(folder_dir), 0
 
         for img_file in sorted(os.listdir(folder_dir)):
-            if img_file != LABELS_FILE:
+            if img_file != const.LABELS_FILE:
                 bounding_boxes = gen_bounding_boxes(polygons[row_number])
                 assign_set(folder_path=folder_dir, img_name=img_file, bounding_boxes=bounding_boxes, counter=counter,
                            test_path=test_path, train_path=train_path)
                 row_number += 1
                 counter += 1
-        break
     gen_csv_files(test_path, train_path)
 
 
@@ -65,13 +61,13 @@ def create_or_delete_directory(directory_path):
 
 
 def make_directories(root_dir):
-    test_path = create_or_delete_directory(root_dir + TEST_DIRECTORY)
-    train_path = create_or_delete_directory(root_dir + TRAIN_DIRECTORY)
+    test_path = create_or_delete_directory(root_dir + const.TEST_DIRECTORY)
+    train_path = create_or_delete_directory(root_dir + const.TRAIN_DIRECTORY)
     return test_path, train_path
 
 
 def load_labels(folder):
-    labels_path = folder + LABELS_FILE
+    labels_path = folder + const.LABELS_FILE
 
     mat = scipy.io.loadmat(labels_path)
     polygons = mat['polygons'][0]
@@ -127,7 +123,7 @@ def gen_csv_files(test_path, train_path):
 
 def populate_csv_file(file_path, csv_data):
     headers = ['filename', 'hand_1', 'hand_2', 'hand_3', 'hand_4']
-    with open(file_path + 'test.csv', 'a') as test_file:
+    with open(file_path + const.CSV, 'a') as test_file:
         writer = csv.DictWriter(test_file, fieldnames=headers)
 
         writer.writeheader()
