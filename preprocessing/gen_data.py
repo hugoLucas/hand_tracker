@@ -1,14 +1,22 @@
+import random as ran
+import cv2 as cv
 import scipy.io
 import argparse
-import numpy as np
-import cv2 as cv
+import shutil
+import csv
 import os
 
 
 IMG_ROOT_FOLDER = '_LABELLED_SAMPLES/'
-TEST_DIRECTORY = 'test/'
-TRAIN_DIRECTORY = 'train/'
 LABELS_FILE = 'polygons.mat'
+TRAIN_DIRECTORY = 'train/'
+TEST_DIRECTORY = 'test/'
+
+TRAIN_PROB = 0.80
+TRAIN_SET = {}
+
+TEST_PROB = 1 - TRAIN_PROB
+TEST_SET = {}
 
 
 class ReadableDir(argparse.Action):
@@ -30,6 +38,8 @@ def get_image_root_directory(root_dir):
 
 def process_images(root_dir):
     img_root = get_image_root_directory(root_dir)
+    test_path, train_path = make_directories(root_dir)
+    counter = 0
 
     for img_folder in sorted(os.listdir(img_root)):
         folder_dir = img_root + img_folder + '/'
@@ -37,26 +47,27 @@ def process_images(root_dir):
 
         for img_file in sorted(os.listdir(folder_dir)):
             if img_file != LABELS_FILE:
-                current_img = cv.imread(folder_dir + img_file)
                 bounding_boxes = gen_bounding_boxes(polygons[row_number])
+                assign_set(folder_path=folder_dir, img_name=img_file, bounding_boxes=bounding_boxes, counter=counter,
+                           test_path=test_path, train_path=train_path)
                 row_number += 1
-                break
+                counter += 1
         break
+    gen_csv_files(test_path, train_path)
 
 
 def create_or_delete_directory(directory_path):
     if os.path.isdir(directory_path):
-        # Delete old contents and start again
-        pass
-    else:
-        # Create an empty directory
-        pass
+        shutil.rmtree(directory_path)
+    os.mkdir(directory_path)
+
+    return directory_path
 
 
 def make_directories(root_dir):
-    test_dir, train_dir = root_dir + TEST_DIRECTORY, root_dir + TRAIN_DIRECTORY
-    create_or_delete_directory(test_dir)
-    create_or_delete_directory(train_dir)
+    test_path = create_or_delete_directory(root_dir + TEST_DIRECTORY)
+    train_path = create_or_delete_directory(root_dir + TRAIN_DIRECTORY)
+    return test_path, train_path
 
 
 def load_labels(folder):
@@ -88,6 +99,45 @@ def gen_bounding_boxes(polygon_row):
             boxes.append([int(x_min), int(y_min), int(x_max), int(y_max)])
     return boxes
 
+
+def assign_set(folder_path, img_name, bounding_boxes, counter, test_path, train_path):
+    ran_num = ran.random()
+
+    new_filename = 'img_{}.jpg'.format(counter)
+    if ran_num <= TRAIN_PROB:
+        shutil.copy(src=folder_path + img_name, dst=train_path + new_filename)
+        TRAIN_SET[new_filename] = bounding_boxes
+    else:
+        shutil.copy(src=folder_path + img_name, dst=test_path + new_filename)
+        TEST_SET[new_filename] = bounding_boxes
+
+
+def visualize_results(img_path, boxes):
+    img = cv.imread(img_path)
+    for box in boxes:
+        cv.rectangle(img, (box[0], box[1]), (box[2], box[3]), color=(256, 0, 0))
+    cv.imshow('window', img)
+    cv.waitKey(0)
+
+
+def gen_csv_files(test_path, train_path):
+    populate_csv_file(test_path, TEST_SET)
+    populate_csv_file(train_path, TRAIN_SET)
+
+
+def populate_csv_file(file_path, csv_data):
+    headers = ['filename', 'hand_1', 'hand_2', 'hand_3', 'hand_4']
+    with open(file_path + 'test.csv', 'a') as test_file:
+        writer = csv.DictWriter(test_file, fieldnames=headers)
+
+        writer.writeheader()
+        for key in csv_data.keys():
+            data = csv_data[key]
+            while len(data) < 4:
+                data.append(None)
+
+            writer.writerow({'filename': key, 'hand_1': data[0], 'hand_2': data[1], 'hand_3': data[2],
+                             'hand_4': data[3]})
 
 script_parser = argparse.ArgumentParser(description='Takes the EgoHands Labeled Data zip file and creates a train and '
                                                     'test set. Creates .csv files with bounding boxes for both data '
