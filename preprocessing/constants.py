@@ -2,4 +2,5 @@ TRAIN_DIRECTORY = 'train/'
 TEST_DIRECTORY = 'test/'
 IMG_ROOT_FOLDER = '_LABELLED_SAMPLES/'
 LABELS_FILE = 'polygons.mat'
+IMG_SIZE = (600, 600)
 CSV = 'data.csv'

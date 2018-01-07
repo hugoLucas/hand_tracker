@@ -36,10 +36,11 @@ def visualize_results(root):
                 if box is not None:
                     x_min, y_min, x_max, y_max = box
                     cv.rectangle(image, (x_min, y_min), (x_max, y_max), color=(0, 256, 0), thickness=3)
-            cv.imshow('WINDOW', image)
+            cv.imshow(random_directory + image_name, image)
             key_val = cv.waitKey(0)
 
-            if key_val == 113:
+            # Value of q
+            if key_val == 1048689:
                 break
 
 
@@ -65,14 +66,15 @@ def parse_data(data_str):
         data_str = data_str[1:-1]
         return [int(s) for s in data_str.split(',')]
 
-script_parser = argparse.ArgumentParser(description='Takes the EgoHands Labeled Data zip file and creates a train and '
-                                                    'test set. Creates .csv files with bounding boxes for both data '
-                                                    'sets.')
+script_parser = argparse.ArgumentParser(description='Allows user to visualize the results of gen_data.py')
 script_parser.add_argument(dest='root_dir', metavar='DIR', help='Root directory of extracted egohands_data.',
                            action=ReadableDir)
 args = script_parser.parse_args()
 
-root_dir = args.root_dir + '/'
+root_dir = args.root_dir
+if root_dir[-1] != '/':
+    root_dir += '/'
+
 verify_test_train_set_existence(script_parser, root_dir)
 
 visualize_results(root_dir)
