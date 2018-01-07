@@ -44,7 +44,7 @@ def load_image(file_path):
     img = cv.imread(file_path)
 
     try:
-        img = cv.resize(img, const.IMG_SIZE, interpolation=cv.INTER_CUBIC)
+        img = cv.resize(img, const.NEW_IMG_SIZE, interpolation=cv.INTER_CUBIC)
         img = cv.cvtColor(img, cv.COLOR_BGR2RGB)
         img = img.astype(np.float32)
         return img
@@ -75,11 +75,31 @@ def construct_feature(img_features, img):
     feature = {
         'img': tf.train.Feature(bytes_list=tf.train.BytesList(value=[tf.compat.as_bytes(img.tostring())]))
     }
+    s_y, s_x = const.NEW_IMG_SIZE[0]/const.OLD_IMG_SIZE[0], const.NEW_IMG_SIZE[0]/const.OLD_IMG_SIZE[0]
     for i in range(0, len(img_features)):
-        feature['hand_{}'.format(i+1)] = tf.train.Feature(int64_list=tf.train.Int64List(value=img_features[i]))
+        new_features = scale_boxes(s_x, s_y, img_features[i])
+        feature['hand_{}'.format(i+1)] = tf.train.Feature(int64_list=tf.train.Int64List(value=new_features))
 
     example = tf.train.Example(features=tf.train.Features(feature=feature))
     return example
+
+
+def scale_boxes(scale_x, scale_y, box):
+    return [int(box[0] * scale_x), int(box[1] * scale_y), int(box[2] * scale_x), int(box[3] * scale_y)]
+
+
+def verify_scaling(path, features):
+    img = cv.imread(path)
+    img = cv.resize(img, const.NEW_IMG_SIZE, interpolation=cv.INTER_CUBIC)
+    img = cv.cvtColor(img, cv.COLOR_BGR2RGB)
+
+    s_y, s_x = const.NEW_IMG_SIZE[0] / const.OLD_IMG_SIZE[0], const.NEW_IMG_SIZE[1] / const.OLD_IMG_SIZE[1]
+    for box in features:
+        n_f = scale_boxes(s_x, s_y, box)
+        cv.rectangle(img, (n_f[0], n_f[1]), (n_f[2], n_f[3]), (0, 256, 0))
+        cv.imshow('window', img)
+        cv.waitKey(0)
+
 
 script_parser = argparse.ArgumentParser(description='Allows user to visualize the results of gen_data.py')
 script_parser.add_argument(dest='root_dir', metavar='DIR', help='Root directory of extracted egohands_data.',
@@ -93,8 +113,5 @@ if root_dir[-1] != '/':
 train_directory = root_dir + const.TRAIN_DIRECTORY
 test_directory = root_dir + const.TEST_DIRECTORY
 
-# iterate_over_directory(train_directory)
+iterate_over_directory(train_directory)
 iterate_over_directory(test_directory)
-
-
-
