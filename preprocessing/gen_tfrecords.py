@@ -9,6 +9,28 @@ import os
 import preprocessing.constants as const
 
 
+# Taken from tensor-flow object detection tutorial #####################################################################
+def int64_feature(value):
+    return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
+
+
+def int64_list_feature(value):
+    return tf.train.Feature(int64_list=tf.train.Int64List(value=value))
+
+
+def bytes_feature(value):
+    return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
+
+
+def float_list_feature(value):
+    return tf.train.Feature(float_list=tf.train.FloatList(value=value))
+
+
+def bytes_list_feature(value):
+    return tf.train.Feature(bytes_list=tf.train.BytesList(value=value))
+########################################################################################################################
+
+
 class ReadableDir(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         prospective_dir = values
@@ -27,17 +49,21 @@ def iterate_over_directory(directory):
     csv_map = load_csv_file(directory)
     counter = 1
     for file in os.listdir(directory):
-        img, img_shape = load_image(directory + file)
-        if img is not None:
-            img_features = csv_map[file]
+        # img, img_shape = load_image(directory + file)
+        if 'jpg' in file:
+            img = tf.gfile.FastGFile(directory + file, 'rb').read()
+            if img is not None:
+                img_features = csv_map[file]
 
-            for box in img_features:
-                example = construct_feature(box, img, img_shape, file)
-                writer.write(example.SerializeToString())
+                for box in img_features:
+                    example = construct_feature(box, img, None, file)
+                    writer.write(example.SerializeToString())
 
-            if counter % 50 == 0:
-                print(file, '{}: complete!'.format(counter))
-            counter += 1
+                if counter % 50 == 0:
+                    print(file, '{}: complete!'.format(counter))
+                # if counter == 500:
+                #     break
+                counter += 1
 
     writer.close()
     sys.stdout.flush()
@@ -75,24 +101,25 @@ def parse_data(data_str):
         return [int(s) for s in data_str.split(',')]
 
 
+# tf.compat.as_bytes() .tostring()
 def construct_feature(box, encoded_img, encoded_img_shape, img_name):
-    height, width, channels = encoded_img_shape
+    # height, width, channels = encoded_img_shape
+    height, width = const.OLD_IMG_SIZE
     encoded_img_format = b'jpg'
     encoded_img_name = img_name.encode('utf-8')
     example = tf.train.Example(features=tf.train.Features(feature={
-        'image/height': tf.train.Feature(int64_list=tf.train.Int64List(value=[height])),
-        'image/width': tf.train.Feature(int64_list=tf.train.Int64List(value=[width])),
-        'image/filename': tf.train.Feature(bytes_list=tf.train.BytesList(value=[encoded_img_name])),
-        'image/source_id': tf.train.Feature(bytes_list=tf.train.BytesList(value=[encoded_img_name])),
-        'image/encoded':  tf.train.Feature(bytes_list=tf.train.BytesList(
-            value=[tf.compat.as_bytes(encoded_img.tostring())])),
-        'image/format': tf.train.Feature(bytes_list=tf.train.BytesList(value=[encoded_img_format])),
-        'image/object/bbox/xmin': tf.train.Feature(float_list=tf.train.FloatList(value=[box[0]])),
-        'image/object/bbox/xmax': tf.train.Feature(float_list=tf.train.FloatList(value=[box[2]])),
-        'image/object/bbox/ymin': tf.train.Feature(float_list=tf.train.FloatList(value=[box[1]])),
-        'image/object/bbox/ymax': tf.train.Feature(float_list=tf.train.FloatList(value=[box[3]])),
-        'image/object/class/text': tf.train.Feature(bytes_list=tf.train.BytesList(value=[b'hand'])),
-        'image/object/class/label':  tf.train.Feature(int64_list=tf.train.Int64List(value=[1]))
+        const.HEIGHT_KEY: int64_feature(height),
+        const.WIDTH_KEY: int64_feature(width),
+        const.FILENAME_KEY: bytes_feature(encoded_img_name),
+        const.SOURCE_KEY: bytes_feature(encoded_img_name),
+        const.ENCODED_IMAGE_KEY:  bytes_feature(encoded_img),
+        const.FORMAT_KEY: bytes_feature(encoded_img_format),
+        const.XMIN_KEY: float_list_feature([box[0] / width]),
+        const.XMAX_KEY: float_list_feature([box[2] / width]),
+        const.YMIN_KEY: float_list_feature([box[1] / height]),
+        const.YMAX_KEY: float_list_feature([box[3] / height]),
+        const.CLASS_KEY: bytes_list_feature([b'hand']),
+        const.LABEL_KEY:  int64_list_feature([1])
     }))
     return example
 
