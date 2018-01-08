@@ -27,13 +27,16 @@ def iterate_over_directory(directory):
     csv_map = load_csv_file(directory)
     counter = 1
     for file in os.listdir(directory):
-        img = load_image(directory + file)
+        img, img_shape = load_image(directory + file)
         if img is not None:
             img_features = csv_map[file]
 
-            example = construct_feature(img_features, img)
-            writer.write(example.SerializeToString())
-            print(file, '{}: complete!'.format(counter))
+            for box in img_features:
+                example = construct_feature(box, img, img_shape, file)
+                writer.write(example.SerializeToString())
+
+            if counter % 50 == 0:
+                print(file, '{}: complete!'.format(counter))
             counter += 1
 
     writer.close()
@@ -45,11 +48,12 @@ def load_image(file_path):
 
     try:
         img = cv.resize(img, const.NEW_IMG_SIZE, interpolation=cv.INTER_CUBIC)
+        shape = img.shape
         img = cv.cvtColor(img, cv.COLOR_BGR2RGB)
         img = img.astype(np.float32)
-        return img
+        return img, shape
     except cv.error:
-        return None
+        return None, None
 
 
 def load_csv_file(directory):
@@ -71,16 +75,25 @@ def parse_data(data_str):
         return [int(s) for s in data_str.split(',')]
 
 
-def construct_feature(img_features, img):
-    feature = {
-        'img': tf.train.Feature(bytes_list=tf.train.BytesList(value=[tf.compat.as_bytes(img.tostring())]))
-    }
-    s_y, s_x = const.NEW_IMG_SIZE[0]/const.OLD_IMG_SIZE[0], const.NEW_IMG_SIZE[0]/const.OLD_IMG_SIZE[0]
-    for i in range(0, len(img_features)):
-        new_features = scale_boxes(s_x, s_y, img_features[i])
-        feature['hand_{}'.format(i+1)] = tf.train.Feature(int64_list=tf.train.Int64List(value=new_features))
-
-    example = tf.train.Example(features=tf.train.Features(feature=feature))
+def construct_feature(box, encoded_img, encoded_img_shape, img_name):
+    height, width, channels = encoded_img_shape
+    encoded_img_format = b'jpg'
+    encoded_img_name = img_name.encode('utf-8')
+    example = tf.train.Example(features=tf.train.Features(feature={
+        'image/height': tf.train.Feature(int64_list=tf.train.Int64List(value=[height])),
+        'image/width': tf.train.Feature(int64_list=tf.train.Int64List(value=[width])),
+        'image/filename': tf.train.Feature(bytes_list=tf.train.BytesList(value=[encoded_img_name])),
+        'image/source_id': tf.train.Feature(bytes_list=tf.train.BytesList(value=[encoded_img_name])),
+        'image/encoded':  tf.train.Feature(bytes_list=tf.train.BytesList(
+            value=[tf.compat.as_bytes(encoded_img.tostring())])),
+        'image/format': tf.train.Feature(bytes_list=tf.train.BytesList(value=[encoded_img_format])),
+        'image/object/bbox/xmin': tf.train.Feature(float_list=tf.train.FloatList(value=[box[0]])),
+        'image/object/bbox/xmax': tf.train.Feature(float_list=tf.train.FloatList(value=[box[2]])),
+        'image/object/bbox/ymin': tf.train.Feature(float_list=tf.train.FloatList(value=[box[1]])),
+        'image/object/bbox/ymax': tf.train.Feature(float_list=tf.train.FloatList(value=[box[3]])),
+        'image/object/class/text': tf.train.Feature(bytes_list=tf.train.BytesList(value=[b'hand'])),
+        'image/object/class/label':  tf.train.Feature(int64_list=tf.train.Int64List(value=[1]))
+    }))
     return example
 
 
