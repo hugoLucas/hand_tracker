@@ -1,10 +1,12 @@
 import tensorflow as tf
+from PIL import Image
 import numpy as np
 import cv2 as cv
 import argparse
 import csv
 import sys
 import os
+import io
 
 import preprocessing.constants as const
 
@@ -49,37 +51,26 @@ def iterate_over_directory(directory):
     csv_map = load_csv_file(directory)
     counter = 1
     for file in os.listdir(directory):
-        # img, img_shape = load_image(directory + file)
         if 'jpg' in file:
-            img = tf.gfile.FastGFile(directory + file, 'rb').read()
+
+            with tf.gfile.GFile(directory + file, 'rb') as fid:
+                encoded_jpg = fid.read()
+            encoded_jpg_io = io.BytesIO(encoded_jpg)
+            img = Image.open(encoded_jpg_io)
+
             if img is not None:
                 img_features = csv_map[file]
+                width, height = img.size
 
-                for box in img_features:
-                    example = construct_feature(box, img, None, file)
-                    writer.write(example.SerializeToString())
+                example = construct_feature(img_features, encoded_jpg, height, width, img_name=file)
+                writer.write(example.SerializeToString())
 
                 if counter % 50 == 0:
                     print(file, '{}: complete!'.format(counter))
-                # if counter == 500:
-                #     break
                 counter += 1
 
     writer.close()
     sys.stdout.flush()
-
-
-def load_image(file_path):
-    img = cv.imread(file_path)
-
-    try:
-        img = cv.resize(img, const.NEW_IMG_SIZE, interpolation=cv.INTER_CUBIC)
-        shape = img.shape
-        img = cv.cvtColor(img, cv.COLOR_BGR2RGB)
-        img = img.astype(np.float32)
-        return img, shape
-    except cv.error:
-        return None, None
 
 
 def load_csv_file(directory):
@@ -102,43 +93,39 @@ def parse_data(data_str):
 
 
 # tf.compat.as_bytes() .tostring()
-def construct_feature(box, encoded_img, encoded_img_shape, img_name):
-    # height, width, channels = encoded_img_shape
-    height, width = const.OLD_IMG_SIZE
-    encoded_img_format = b'jpg'
+def construct_feature(boxes, encoded_img, encoded_img_height, encoded_img_width, img_name):
+    encoded_img_format, encoded_img_label, encoded_img_label = b'jpg', b'hand', 1
     encoded_img_name = img_name.encode('utf-8')
+
+    x_min, x_max, y_min, y_max = [], [], [], []
+    classes, labels = [], []
+    for box in boxes:
+        x_min.append(box[0] / encoded_img_width)
+        x_max.append(box[2] / encoded_img_width)
+        y_min.append(box[1] / encoded_img_height)
+        y_max.append(box[3] / encoded_img_height)
+        classes.append(encoded_img_label)
+        labels.append(encoded_img_label)
+
     example = tf.train.Example(features=tf.train.Features(feature={
-        const.HEIGHT_KEY: int64_feature(height),
-        const.WIDTH_KEY: int64_feature(width),
+        const.HEIGHT_KEY: int64_feature(encoded_img_height),
+        const.WIDTH_KEY: int64_feature(encoded_img_width),
         const.FILENAME_KEY: bytes_feature(encoded_img_name),
         const.SOURCE_KEY: bytes_feature(encoded_img_name),
-        const.ENCODED_IMAGE_KEY:  bytes_feature(encoded_img),
+        const.ENCODED_IMAGE_KEY: bytes_feature(encoded_img),
         const.FORMAT_KEY: bytes_feature(encoded_img_format),
-        const.XMIN_KEY: float_list_feature([box[0] / width]),
-        const.XMAX_KEY: float_list_feature([box[2] / width]),
-        const.YMIN_KEY: float_list_feature([box[1] / height]),
-        const.YMAX_KEY: float_list_feature([box[3] / height]),
-        const.CLASS_KEY: bytes_list_feature([b'hand']),
-        const.LABEL_KEY:  int64_list_feature([1])
+        const.XMIN_KEY: float_list_feature(x_min),
+        const.XMAX_KEY: float_list_feature(x_max),
+        const.YMIN_KEY: float_list_feature(y_min),
+        const.YMAX_KEY: float_list_feature(y_max),
+        const.CLASS_KEY: bytes_list_feature(classes),
+        const.LABEL_KEY: int64_list_feature(labels)
     }))
     return example
 
 
 def scale_boxes(scale_x, scale_y, box):
     return [int(box[0] * scale_x), int(box[1] * scale_y), int(box[2] * scale_x), int(box[3] * scale_y)]
-
-
-def verify_scaling(path, features):
-    img = cv.imread(path)
-    img = cv.resize(img, const.NEW_IMG_SIZE, interpolation=cv.INTER_CUBIC)
-    img = cv.cvtColor(img, cv.COLOR_BGR2RGB)
-
-    s_y, s_x = const.NEW_IMG_SIZE[0] / const.OLD_IMG_SIZE[0], const.NEW_IMG_SIZE[1] / const.OLD_IMG_SIZE[1]
-    for box in features:
-        n_f = scale_boxes(s_x, s_y, box)
-        cv.rectangle(img, (n_f[0], n_f[1]), (n_f[2], n_f[3]), (0, 256, 0))
-        cv.imshow('window', img)
-        cv.waitKey(0)
 
 
 script_parser = argparse.ArgumentParser(description='Allows user to visualize the results of gen_data.py')
@@ -155,3 +142,19 @@ test_directory = root_dir + const.TEST_DIRECTORY
 
 iterate_over_directory(train_directory)
 iterate_over_directory(test_directory)
+
+
+# example = tf.train.Example(features=tf.train.Features(feature={
+#     const.HEIGHT_KEY: int64_feature(encoded_img_height),
+#     const.WIDTH_KEY: int64_feature(encoded_img_width),
+#     const.FILENAME_KEY: bytes_feature(encoded_img_name),
+#     const.SOURCE_KEY: bytes_feature(encoded_img_name),
+#     const.ENCODED_IMAGE_KEY:  bytes_feature(encoded_img),
+#     const.FORMAT_KEY: bytes_feature(encoded_img_format),
+#     const.XMIN_KEY: float_list_feature([box[0] / encoded_img_width]),
+#     const.XMAX_KEY: float_list_feature([box[2] / encoded_img_width]),
+#     const.YMIN_KEY: float_list_feature([box[1] / encoded_img_height]),
+#     const.YMAX_KEY: float_list_feature([box[3] / encoded_img_height]),
+#     const.CLASS_KEY: bytes_list_feature([b'hand']),
+#     const.LABEL_KEY:  int64_list_feature([1])
+# }))
