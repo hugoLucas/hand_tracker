@@ -1,5 +1,12 @@
-TRAIN_DIRECTORY = 'train/'
-TEST_DIRECTORY = 'test/'
+EGO_TRAIN_DIRECTORY = 'train/'
+EGO_TEST_DIRECTORY = 'test/'
+
+HAND_TRAIN_DIRECTORY = 'training_dataset/training_data/images'
+HAND_TEST_DIRECTORY = 'test_dataset/test_data/images'
+
+HAND_TRAIN_ANNOTATIONS = 'training_dataset/training_data/annotations'
+HAND_TEST_ANNOTATIONS = 'training_dataset/test_data/annotations'
+
 IMG_ROOT_FOLDER = '_LABELLED_SAMPLES/'
 LABELS_FILE = 'polygons.mat'
 NEW_IMG_SIZE = (600, 600)
