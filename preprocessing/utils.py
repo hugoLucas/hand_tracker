@@ -104,20 +104,16 @@ def load_coordinates(mat_data):
     return coordinate_list
 
 
-def process_mat(base_dir, mat_file_name, training=True):
+def process_mat(base_dir, mat_file_name):
     """
     Opens the corresponding .mat file for a given image and retrieves the images hand coordinates
 
     :param base_dir: the directory passed to the script as input
     :param mat_file_name: the file name of the .mat file for the image
-    :param training: true if .mat file is for image in the training set, false otherwise
     :return: a list of hand coordinates
     """
-    if training:
-        mat_path = path.join(path.join(base_dir, const.HAND_TRAIN_ANNOTATIONS), mat_file_name)
-    else:
-        mat_path = path.join(path.join(base_dir, const.HAND_TEST_ANNOTATIONS), mat_file_name)
 
+    mat_path = path.join(base_dir, mat_file_name)
     mat_file = loadmat(mat_path)['boxes'][0]
     return load_coordinates(mat_file)
 

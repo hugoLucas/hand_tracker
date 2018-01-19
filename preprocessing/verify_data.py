@@ -19,13 +19,13 @@ class ReadableDir(argparse.Action):
 
 
 def verify_test_train_set_existence(parser, root):
-    if not os.path.isdir(root + const.TRAIN_DIRECTORY) or not os.path.isdir(root + const.TEST_DIRECTORY):
+    if not os.path.isdir(root + const.EGO_TRAIN_DIRECTORY) or not os.path.isdir(root + const.EGO_TEST_DIRECTORY):
         parser.error('Please run gen_data script first to generate a test and train set.')
 
 
 def visualize_results(root):
     while True:
-        directories = [root + const.TEST_DIRECTORY, root + const.TRAIN_DIRECTORY]
+        directories = [root + const.EGO_TEST_DIRECTORY, root + const.EGO_TRAIN_DIRECTORY]
 
         random_directory = directories[ran.randint(0, len(directories) - 1)]
         image_name, image = gen_random_image(random_directory)
@@ -66,7 +66,7 @@ def parse_data(data_str):
         data_str = data_str[1:-1]
         return [int(s) for s in data_str.split(',')]
 
-script_parser = argparse.ArgumentParser(description='Allows user to visualize the results of gen_data.py')
+script_parser = argparse.ArgumentParser(description='Allows user to visualize the results of gen_directories.py')
 script_parser.add_argument(dest='root_dir', metavar='DIR', help='Root directory of extracted egohands_data.',
                            action=ReadableDir)
 args = script_parser.parse_args()

@@ -7,24 +7,13 @@ import csv
 import os
 
 import preprocessing.constants as const
-
+from preprocessing.reachable_dir import ReadableDir
 
 TRAIN_PROB = 0.80
 TRAIN_SET = {}
 
 TEST_PROB = 1 - TRAIN_PROB
 TEST_SET = {}
-
-
-class ReadableDir(argparse.Action):
-    def __call__(self, parser, namespace, values, option_string=None):
-        prospective_dir = values
-        if not os.path.isdir(prospective_dir):
-            raise argparse.ArgumentTypeError("readable_dir:{0} is not a valid path".format(prospective_dir))
-        if os.access(prospective_dir, os.R_OK):
-            setattr(namespace, self.dest, prospective_dir)
-        else:
-            raise argparse.ArgumentTypeError("readable_dir:{0} is not a readable dir".format(prospective_dir))
 
 
 def get_image_root_directory(root_dir):
@@ -61,8 +50,8 @@ def create_or_delete_directory(directory_path):
 
 
 def make_directories(root_dir):
-    test_path = create_or_delete_directory(root_dir + const.TEST_DIRECTORY)
-    train_path = create_or_delete_directory(root_dir + const.TRAIN_DIRECTORY)
+    test_path = create_or_delete_directory(root_dir + const.EGO_TEST_DIRECTORY)
+    train_path = create_or_delete_directory(root_dir + const.EGO_TRAIN_DIRECTORY)
     return test_path, train_path
 
 

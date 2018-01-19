@@ -19,12 +19,16 @@ def process_data(ego_directory, hand_directory, out_directory, training=True):
     :return: None
     """
     if training:
-        writer = tf.python_io.TFRecordWriter(path.join(out_directory + 'train.tfrecords'))
+        writer = tf.python_io.TFRecordWriter(path.join(out_directory, 'train.tfrecords'))
     else:
-        writer = tf.python_io.TFRecordWriter(path.join(out_directory + 'test.tfrecords'))
+        writer = tf.python_io.TFRecordWriter(path.join(out_directory, 'test.tfrecords'))
 
     process_hands(hand_directory, writer)
+    print('Hands data set complete...')
+
     process_ego_hands(ego_directory, writer)
+    print('Ego hands data set complete...')
+
     writer.close()
     stdout.flush()
 
@@ -37,10 +41,12 @@ def process_hands(directory, writer):
     :param writer: a tf.python_io.TFRecordWriter object
     :return: None
     """
-    for img_filename in listdir(directory):
+    image_directory = path.join(directory, const.HAND_IMAGES)
+    for img_filename in listdir(image_directory):
         mat_filename = img_filename.replace('.jpg', '.mat')
-        hand_coordinates = process_mat(directory, mat_filename)
-        encoded_jpg, height, width = load_encoded_image(path.join(directory, img_filename))
+        hand_coordinates = process_mat(path.join(directory, const.HAND_ANNOTATIONS), mat_filename)
+
+        encoded_jpg, height, width = load_encoded_image(path.join(image_directory, img_filename))
 
         if encoded_jpg is not None:
             example = construct_feature(hand_coordinates, encoded_jpg, height, width, img_name=img_filename)
@@ -83,5 +89,8 @@ ego_train_directory, ego_test_directory = path.join(ego_dir, const.EGO_TRAIN_DIR
 hands_train_directory, hand_test_directory = path.join(hand_dir, const.HAND_TRAIN_DIRECTORY), \
                                              path.join(hand_dir, const.HAND_TEST_DIRECTORY)
 
-# process_training_data(ego_train_directory, hands_train_directory, out_dir)
+print('Processing training data...')
+process_data(ego_train_directory, hands_train_directory, out_dir)
+
+# print('Processing test data...)
 # process_training_data(ego_test_directory, hands_test_directory, out_dir, training=False)
