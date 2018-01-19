@@ -1,160 +1,87 @@
-import tensorflow as tf
-from PIL import Image
-import numpy as np
-import cv2 as cv
-import argparse
-import csv
-import sys
-import os
-import io
-
 import preprocessing.constants as const
+import tensorflow as tf
+
+from preprocessing.utils import construct_feature, load_encoded_image, process_mat, load_csv_file
+from preprocessing.reachable_dir import ReadableDir
+from argparse import ArgumentParser
+from os import path, listdir
+from sys import stdout
 
 
-# Taken from tensor-flow object detection tutorial #####################################################################
-def int64_feature(value):
-    return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
+def process_data(ego_directory, hand_directory, out_directory, training=True):
+    """
+    Creates a training or test .tfrecord file by iterating over the training/test sub-folders of both data sets.
+
+    :param training: True if function is being used to generate a training tf record file
+    :param ego_directory: directory of the Training sub-folder created by gen_directories.py
+    :param hand_directory: directory of the Training sub-folder that comes with the HANDS data set
+    :param out_directory: output directory to store tfrecord in
+    :return: None
+    """
+    if training:
+        writer = tf.python_io.TFRecordWriter(path.join(out_directory + 'train.tfrecords'))
+    else:
+        writer = tf.python_io.TFRecordWriter(path.join(out_directory + 'test.tfrecords'))
+
+    process_hands(hand_directory, writer)
+    process_ego_hands(ego_directory, writer)
+    writer.close()
+    stdout.flush()
 
 
-def int64_list_feature(value):
-    return tf.train.Feature(int64_list=tf.train.Int64List(value=value))
+def process_hands(directory, writer):
+    """
+    Iterate over a given directory in the HANDS data set and write its data to tf record writer
+
+    :param directory: a directory (training or test) in the extracted HANDS folder
+    :param writer: a tf.python_io.TFRecordWriter object
+    :return: None
+    """
+    for img_filename in listdir(directory):
+        mat_filename = img_filename.replace('.jpg', '.mat')
+        hand_coordinates = process_mat(directory, mat_filename)
+        encoded_jpg, height, width = load_encoded_image(path.join(directory, img_filename))
+
+        if encoded_jpg is not None:
+            example = construct_feature(hand_coordinates, encoded_jpg, height, width, img_name=img_filename)
+            writer.write(example.SerializeToString())
 
 
-def bytes_feature(value):
-    return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
+def process_ego_hands(directory, writer):
+    """
+    Iterate over a given directory in the Ego Hands data set and write its data to tf record writer
 
-
-def float_list_feature(value):
-    return tf.train.Feature(float_list=tf.train.FloatList(value=value))
-
-
-def bytes_list_feature(value):
-    return tf.train.Feature(bytes_list=tf.train.BytesList(value=value))
-########################################################################################################################
-
-
-class ReadableDir(argparse.Action):
-    def __call__(self, parser, namespace, values, option_string=None):
-        prospective_dir = values
-        if not os.path.isdir(prospective_dir):
-            raise argparse.ArgumentTypeError("readable_dir:{0} is not a valid path".format(prospective_dir))
-        if os.access(prospective_dir, os.R_OK):
-            setattr(namespace, self.dest, prospective_dir)
-        else:
-            raise argparse.ArgumentTypeError("readable_dir:{0} is not a readable dir".format(prospective_dir))
-
-
-def iterate_over_directory(directory):
-    file_name = 'train.tfrecords' if 'train/' in directory else 'test.tfrecords'
-    writer = tf.python_io.TFRecordWriter(directory + file_name)
-
+    :param directory: a directory (training or test) in the extracted Ego Hands folder
+    :param writer: a tf.python_io.TFRecordWriter object
+    :return: None
+    """
     csv_map = load_csv_file(directory)
-    counter = 1
-    for file in os.listdir(directory):
+    for file in listdir(directory):
         if 'jpg' in file:
 
-            with tf.gfile.GFile(directory + file, 'rb') as fid:
-                encoded_jpg = fid.read()
-            encoded_jpg_io = io.BytesIO(encoded_jpg)
-            img = Image.open(encoded_jpg_io)
-
-            if img is not None:
+            encoded_jpg, height, width = load_encoded_image(path.join(directory, file))
+            if encoded_jpg is not None:
                 img_features = csv_map[file]
-                width, height = img.size
-
                 example = construct_feature(img_features, encoded_jpg, height, width, img_name=file)
                 writer.write(example.SerializeToString())
 
-                if counter % 50 == 0:
-                    print(file, '{}: complete!'.format(counter))
-                counter += 1
 
-    writer.close()
-    sys.stdout.flush()
-
-
-def load_csv_file(directory):
-    csv_file, csv_data = directory + const.CSV, {}
-    with open(csv_file, 'r') as data_file:
-        reader = csv.DictReader(data_file)
-        for row in reader:
-            row_key = row['filename']
-            row_data = [parse_data(row['hand_1']), parse_data(row['hand_2']), parse_data(row['hand_3']),
-                        parse_data(row['hand_4'])]
-            row_data = list(filter(lambda x: x is not None, row_data))
-            csv_data[row_key] = row_data
-    return csv_data
-
-
-def parse_data(data_str):
-    if len(data_str) > 0:
-        data_str = data_str[1:-1]
-        return [int(s) for s in data_str.split(',')]
-
-
-# tf.compat.as_bytes() .tostring()
-def construct_feature(boxes, encoded_img, encoded_img_height, encoded_img_width, img_name):
-    encoded_img_format, encoded_img_label, encoded_img_label = b'jpg', b'hand', 1
-    encoded_img_name = img_name.encode('utf-8')
-
-    x_min, x_max, y_min, y_max = [], [], [], []
-    classes, labels = [], []
-    for box in boxes:
-        x_min.append(box[0] / encoded_img_width)
-        x_max.append(box[2] / encoded_img_width)
-        y_min.append(box[1] / encoded_img_height)
-        y_max.append(box[3] / encoded_img_height)
-        classes.append(encoded_img_label)
-        labels.append(encoded_img_label)
-
-    example = tf.train.Example(features=tf.train.Features(feature={
-        const.HEIGHT_KEY: int64_feature(encoded_img_height),
-        const.WIDTH_KEY: int64_feature(encoded_img_width),
-        const.FILENAME_KEY: bytes_feature(encoded_img_name),
-        const.SOURCE_KEY: bytes_feature(encoded_img_name),
-        const.ENCODED_IMAGE_KEY: bytes_feature(encoded_img),
-        const.FORMAT_KEY: bytes_feature(encoded_img_format),
-        const.XMIN_KEY: float_list_feature(x_min),
-        const.XMAX_KEY: float_list_feature(x_max),
-        const.YMIN_KEY: float_list_feature(y_min),
-        const.YMAX_KEY: float_list_feature(y_max),
-        const.CLASS_KEY: bytes_list_feature(classes),
-        const.LABEL_KEY: int64_list_feature(labels)
-    }))
-    return example
-
-
-def scale_boxes(scale_x, scale_y, box):
-    return [int(box[0] * scale_x), int(box[1] * scale_y), int(box[2] * scale_x), int(box[3] * scale_y)]
-
-
-script_parser = argparse.ArgumentParser(description='Allows user to visualize the results of gen_data.py')
-script_parser.add_argument(dest='root_dir', metavar='DIR', help='Root directory of extracted egohands_data.',
+script_parser = ArgumentParser(description='Allows user to visualize the results of gen_directories.py')
+script_parser.add_argument(dest='ego_dir', metavar='E_DIR', help='Root directory of extracted egohands_data.',
                            action=ReadableDir)
+script_parser.add_argument(dest='hand_dir', metavar='H_DIR', help='Root directory of extracted hand_dataset.',
+                           action=ReadableDir)
+script_parser.add_argument(dest='out_dir', metavar='O_DIR', help='Output directory.',
+                           action=ReadableDir)
+
 args = script_parser.parse_args()
+ego_dir, hand_dir, out_dir = args.ego_dir, args.hand_dir, args.out_dir
 
-root_dir = args.root_dir
-if root_dir[-1] != '/':
-    root_dir += '/'
+ego_train_directory, ego_test_directory = path.join(ego_dir, const.EGO_TRAIN_DIRECTORY), \
+                                          path.join(ego_dir, const.EGO_TEST_DIRECTORY)
 
-train_directory = root_dir + const.TRAIN_DIRECTORY
-test_directory = root_dir + const.TEST_DIRECTORY
+hands_train_directory, hand_test_directory = path.join(hand_dir, const.HAND_TRAIN_DIRECTORY), \
+                                             path.join(hand_dir, const.HAND_TEST_DIRECTORY)
 
-iterate_over_directory(train_directory)
-iterate_over_directory(test_directory)
-
-
-# example = tf.train.Example(features=tf.train.Features(feature={
-#     const.HEIGHT_KEY: int64_feature(encoded_img_height),
-#     const.WIDTH_KEY: int64_feature(encoded_img_width),
-#     const.FILENAME_KEY: bytes_feature(encoded_img_name),
-#     const.SOURCE_KEY: bytes_feature(encoded_img_name),
-#     const.ENCODED_IMAGE_KEY:  bytes_feature(encoded_img),
-#     const.FORMAT_KEY: bytes_feature(encoded_img_format),
-#     const.XMIN_KEY: float_list_feature([box[0] / encoded_img_width]),
-#     const.XMAX_KEY: float_list_feature([box[2] / encoded_img_width]),
-#     const.YMIN_KEY: float_list_feature([box[1] / encoded_img_height]),
-#     const.YMAX_KEY: float_list_feature([box[3] / encoded_img_height]),
-#     const.CLASS_KEY: bytes_list_feature([b'hand']),
-#     const.LABEL_KEY:  int64_list_feature([1])
-# }))
+# process_training_data(ego_train_directory, hands_train_directory, out_dir)
+# process_training_data(ego_test_directory, hands_test_directory, out_dir, training=False)
