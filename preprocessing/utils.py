@@ -44,21 +44,24 @@ def construct_feature(boxes, encoded_img, encoded_img_height, encoded_img_width,
         classes.append(encoded_img_class)
         labels.append(encoded_img_label)
 
-    example = tf.train.Example(features=tf.train.Features(feature={
-        const.HEIGHT_KEY: int64_feature(encoded_img_height),
-        const.WIDTH_KEY: int64_feature(encoded_img_width),
-        const.FILENAME_KEY: bytes_feature(encoded_img_name),
-        const.SOURCE_KEY: bytes_feature(encoded_img_name),
-        const.ENCODED_IMAGE_KEY: bytes_feature(encoded_img),
-        const.FORMAT_KEY: bytes_feature(encoded_img_format),
-        const.XMIN_KEY: float_list_feature(x_min),
-        const.XMAX_KEY: float_list_feature(x_max),
-        const.YMIN_KEY: float_list_feature(y_min),
-        const.YMAX_KEY: float_list_feature(y_max),
-        const.CLASS_KEY: bytes_list_feature(classes),
-        const.LABEL_KEY: int64_list_feature(labels)
-    }))
-    return example
+    if len(x_min) == len(x_max) == len(y_min) == len(y_max):
+        example = tf.train.Example(features=tf.train.Features(feature={
+            const.HEIGHT_KEY: int64_feature(encoded_img_height),
+            const.WIDTH_KEY: int64_feature(encoded_img_width),
+            const.FILENAME_KEY: bytes_feature(encoded_img_name),
+            const.SOURCE_KEY: bytes_feature(encoded_img_name),
+            const.ENCODED_IMAGE_KEY: bytes_feature(encoded_img),
+            const.FORMAT_KEY: bytes_feature(encoded_img_format),
+            const.XMIN_KEY: float_list_feature(x_min),
+            const.XMAX_KEY: float_list_feature(x_max),
+            const.YMIN_KEY: float_list_feature(y_min),
+            const.YMAX_KEY: float_list_feature(y_max),
+            const.CLASS_KEY: bytes_list_feature(classes),
+            const.LABEL_KEY: int64_list_feature(labels)
+        }))
+        return example
+    else:
+        raise ValueError(img_name)
 
 
 def parse_data(data_str):
@@ -113,9 +116,13 @@ def process_mat(base_dir, mat_file_name):
     :return: a list of hand coordinates
     """
 
-    mat_path = path.join(base_dir, mat_file_name)
-    mat_file = loadmat(mat_path)['boxes'][0]
-    return load_coordinates(mat_file)
+    try:
+        mat_path = path.join(base_dir, mat_file_name)
+        mat_file = loadmat(mat_path)['boxes'][0]
+        return load_coordinates(mat_file)
+    except MemoryError:
+        print('Memory Error encountered for file: {}'.format(mat_file_name))
+        return None
 
 
 def load_csv_file(directory):
