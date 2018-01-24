@@ -37,10 +37,16 @@ def construct_feature(boxes, encoded_img, encoded_img_height, encoded_img_width,
     x_min, x_max, y_min, y_max = [], [], [], []
     classes, labels = [], []
     for box in boxes:
-        x_min.append(box[0] / encoded_img_width)
-        x_max.append(box[2] / encoded_img_width)
-        y_min.append(box[1] / encoded_img_height)
-        y_max.append(box[3] / encoded_img_height)
+        x_mi, x_mx, y_mi, y_mx = box[0] / encoded_img_width, box[2] / encoded_img_width, \
+                                 box[1] / encoded_img_height, box[3] / encoded_img_height
+
+        if x_mi > 1 or x_mx > 1 or y_mi > 1 or y_mx > 1:
+            print(img_name, encoded_img_height, encoded_img_width)
+
+        x_min.append(x_mi)
+        x_max.append(x_mx)
+        y_min.append(y_mi)
+        y_max.append(y_mx)
         classes.append(encoded_img_class)
         labels.append(encoded_img_label)
 
@@ -82,7 +88,7 @@ def load_encoded_image(image_path):
     encoded_jpg_io = BytesIO(encoded_jpg)
     img = Image.open(encoded_jpg_io)
 
-    height, width = img.size
+    width, height = img.size
     return encoded_jpg, height, width
 
 
