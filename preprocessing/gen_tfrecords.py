@@ -23,8 +23,8 @@ def process_data(ego_directory, hand_directory, out_directory, training=True):
     else:
         writer = tf.python_io.TFRecordWriter(path.join(out_directory, 'test.tfrecords'))
 
-    # process_hands(hand_directory, writer)
-    # print('Hands data set complete...')
+    process_hands(hand_directory, writer)
+    print('Hands data set complete...')
 
     process_ego_hands(ego_directory, writer)
     print('Ego hands data set complete...')
@@ -90,8 +90,8 @@ ego_train_directory, ego_test_directory = path.join(ego_dir, const.EGO_TRAIN_DIR
 hands_train_directory, hand_test_directory = path.join(hand_dir, const.HAND_TRAIN_DIRECTORY), \
                                              path.join(hand_dir, const.HAND_TEST_DIRECTORY)
 
-# print('Processing training data...')
-# process_data(ego_train_directory, hands_train_directory, out_dir)
+print('Processing training data...')
+process_data(ego_train_directory, hands_train_directory, out_dir)
 
 print('Processing test data...')
 process_data(ego_test_directory, hand_test_directory, out_dir, training=False)

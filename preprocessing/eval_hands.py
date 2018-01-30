@@ -35,8 +35,15 @@ for img_filename in listdir(IMG_DIR):
     hands = process_mat(mat_filename)
 
     img = imread(path.join(IMG_DIR, img_filename))
+    height, width, channels = img.shape
     for x_mi, y_mi, x_ma, y_ma in hands:
-        rectangle(img, (int(x_mi), int(y_mi)), (int(x_ma), int(y_ma)), COLOR)
-    imshow(img_filename, img)
+        if x_mi > width or y_mi > height or y_ma > height or x_ma > width:
+            print(x_mi, y_mi, x_ma, y_ma)
+            COLOR = (255, 0, 0)
+
+        rectangle(img, (int(x_mi), int(y_mi)), (int(x_ma), int(y_ma)), COLOR, thickness=3)
+        COLOR = (0, 255, 0)
+
+    imshow('window', img)
     waitKey(0)
 

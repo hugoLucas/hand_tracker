@@ -40,8 +40,10 @@ def construct_feature(boxes, encoded_img, encoded_img_height, encoded_img_width,
         x_mi, x_mx, y_mi, y_mx = box[0] / encoded_img_width, box[2] / encoded_img_width, \
                                  box[1] / encoded_img_height, box[3] / encoded_img_height
 
-        if x_mi > 1 or x_mx > 1 or y_mi > 1 or y_mx > 1:
-            print(img_name, encoded_img_height, encoded_img_width)
+        x_mi = 1 if x_mi > 1 else x_mi
+        x_mx = 1 if x_mx > 1 else x_mx
+        y_mi = 1 if y_mi > 1 else y_mi
+        y_mx = 1 if y_mx > 1 else y_mx
 
         x_min.append(x_mi)
         x_max.append(x_mx)
