@@ -133,14 +133,17 @@ def process_mat(base_dir, mat_file_name):
         return None
 
 
-def load_csv_file(directory):
-    csv_file, csv_data = directory + const.CSV, {}
+def load_csv_file(directory, max_hands=4):
+    csv_file, csv_data = path.join(directory, const.CSV), {}
     with open(csv_file, 'r') as data_file:
         reader = DictReader(data_file)
         for row in reader:
             row_key = row['filename']
-            row_data = [parse_data(row['hand_1']), parse_data(row['hand_2']), parse_data(row['hand_3']),
-                        parse_data(row['hand_4'])]
+            if max_hands == 2:
+                row_data = [parse_data(row['hand_1']), parse_data(row['hand_2'])]
+            else:
+                row_data = [parse_data(row['hand_1']), parse_data(row['hand_2']), parse_data(row['hand_3']),
+                            parse_data(row['hand_4'])]
             row_data = list(filter(lambda x: x is not None, row_data))
             csv_data[row_key] = row_data
     return csv_data
