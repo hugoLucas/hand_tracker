@@ -1,22 +1,60 @@
 import cv2 as cv
-from os import path
+import time
+import csv
+import os
 
-output_directory = '/home/hugolucas/ml_data/custom_examples'
+from data_gen.constants import TIME_LIMIT, FRAME_OFFSET
 
-camera = cv.VideoCapture(0)
+# What should we label these images as?
+LABEL = 'radical'
 
-counter = 0
-while True:
-    ret, frame = camera.read()
-    cv.imshow('Output', frame)
+# Read frames from webcam while user does hand gestures
+cap = cv.VideoCapture(0)
+start, diff = time.process_time(), 0
+frames, counter = [], 0
 
-    response = cv.waitKey(1) & 0xFF
-    if response == ord('q'):
+while diff < TIME_LIMIT:
+    ret, frame = cap.read()
+
+    diff = time.process_time() - start
+    cv.imshow('OUTPUT', frame)
+    if cv.waitKey(1) & 0xFF == ord('q'):
         break
-    elif response == ord('c'):
-        cv.imwrite(path.join(output_directory, 'frame_{}.jpg'.format(counter)), frame)
-        print('Image {} created!'.format(counter))
-        counter += 1
 
-camera.release()
-cv.destroyAllWindows()
+    if counter + 1 == FRAME_OFFSET:
+        frames.append(frame)
+    counter = (counter + 1) % FRAME_OFFSET
+
+cap.release()
+
+# Ask the user to draw bounding boxes around hand
+boxes, current = [], 0
+print('TOTAL: ', len(frames))
+for frame in frames:
+    bbox = cv.selectROI("Image", frame)
+    cv.waitKey(0)
+    boxes.append([bbox[0], bbox[1], bbox[0] + bbox[2], bbox[1] + bbox[3]])
+    print('DONE: ', current)
+    current += 1
+
+# Save the boxes in a .csv file and frames to folder
+filename = './{}/{}.csv'.format(LABEL, LABEL)
+file_exists = os.path.isfile(filename)
+
+FRAME_NUM = 0
+with open(filename, 'w') as csv_file:
+    headers = ['image_name', 'box']
+    writer = csv.DictWriter(csv_file, fieldnames=headers)
+
+    if not file_exists:
+        writer.writeheader()
+
+    for frame, box in zip(frames, boxes):
+        frame_name = 'frame{}.jpg'.format(FRAME_NUM)
+        cv.imwrite('./{}/{}'.format(LABEL, frame_name), frame)
+
+        writer.writerow({
+            'image_name': frame_name,
+            'box': box
+        })
+        FRAME_NUM += 1

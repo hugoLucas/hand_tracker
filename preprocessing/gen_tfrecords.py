@@ -24,14 +24,15 @@ def process_data(ego_directory, hand_directory, custom_directory, out_directory,
     else:
         writer = tf.python_io.TFRecordWriter(path.join(out_directory, 'test.tfrecords'))
 
-    # process_hands(hand_directory, writer)
+    process_hands(hand_directory, writer)
     print('Hands data set complete...')
 
-    # process_ego_hands(ego_directory, writer)
+    process_ego_hands(ego_directory, writer)
     print('Ego hands data set complete...')
 
     if training:
         process_custom(custom_directory, writer)
+        print('Custom data set complete...')
 
     writer.close()
     stdout.flush()
@@ -119,3 +120,5 @@ process_data(ego_train_directory, hands_train_directory, custom_dir, out_dir)
 
 print('Processing test data...')
 # process_data(ego_test_directory, hand_test_directory, custom_dir, out_dir, training=False)
+
+print('Done!')
