@@ -61,3 +61,8 @@ def draw_boxes(frame, boxes, scores, frame_width, frame_height, threshold=0.50):
 def put_text(frame, message, frame_number, color=(0, 0, 255)):
     cv.putText(frame, '{} ({})'.format(message, frame_number), (10, 30), cv.FONT_HERSHEY_SIMPLEX, 1,
                color, 1, cv.LINE_AA)
+
+
+def track_boxes(best_box, frame, output_boxes, output_scores, frame_width, frame_height):
+    b_box = draw_boxes(frame, output_boxes, output_scores, frame_width, frame_height)
+    return b_box if b_box is not None else best_box
