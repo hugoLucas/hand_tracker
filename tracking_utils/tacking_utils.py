@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 import cv2 as cv
 
-from utils.constants import PATH_TO_CKPT
+from tracking_utils.constants import PATH_TO_CKPT
 
 
 def load_graph():

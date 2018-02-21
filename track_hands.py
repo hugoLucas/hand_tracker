@@ -1,8 +1,8 @@
 import tensorflow as tf
 import cv2 as cv
 
-from utils.tacking_utils import load_graph, start_camera, extract_tensors, detect_hands, track_boxes, put_text
-from utils.constants import DETECTION_FRAMES, TOTAL_FRAMES
+from tracking_utils.tacking_utils import load_graph, start_camera, extract_tensors, detect_hands, track_boxes, put_text
+from tracking_utils.constants import DETECTION_FRAMES, TOTAL_FRAMES
 
 detection_graph = load_graph()
 cap, height, width = start_camera()

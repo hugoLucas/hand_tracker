@@ -3,7 +3,7 @@ import time
 import csv
 import os
 
-from data_gen.constants import TIME_LIMIT, FRAME_OFFSET
+from hand_sign_gen.constants import TIME_LIMIT, FRAME_OFFSET, HEADER_KEY, HEADER_VALUE
 
 # What should we label these images as?
 LABEL = 'ok_sign'
@@ -54,10 +54,10 @@ file_exists = os.path.exists(csv_path)
 FRAME_NUM = sum(1 for line in open(csv_path, 'a+'))
 with open(csv_path, 'a') as csv_file:
 
-    headers = ['image_name', 'box']
+    headers = [HEADER_KEY, HEADER_VALUE]
     writer = csv.DictWriter(csv_file, fieldnames=headers)
 
-    if not file_exists:
+    if not file_exists or FRAME_NUM < 1:
         writer.writeheader()
 
     for frame, box in zip(frames, boxes):
