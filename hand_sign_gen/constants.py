@@ -7,4 +7,5 @@ HEADER_KEY = 'image_name'
 HEADER_VALUE = 'box'
 
 # make_tfrecord.py
-IMG_ROOT_DIR = '/home/hugolucas/Pictures/signs'
+IMG_ROOT_DIR = '/home/hugo/Pictures/images'
+TRAIN_THRESH = 0.90
