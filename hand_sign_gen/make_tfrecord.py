@@ -1,7 +1,7 @@
 import numpy as np
 import cv2 as cv
 
-from preprocessing.utils import bytes_feature, int64_feature
+from preprocessing.utils import bytes_feature
 from tensorflow import python_io, compat, train
 from os import listdir, path
 from csv import DictReader
