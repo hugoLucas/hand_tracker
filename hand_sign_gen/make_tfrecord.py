@@ -35,13 +35,14 @@ def process_folder(folder_path, folder_csv, img_label, tf_writer):
             print('Unable to retrieve data for {}'.format(img_name))
         else:
             img = load_img(path.join(folder_path, img_name), img_data)
-            feature = {
-                'label': bytes_feature(compat.as_bytes(img_label)),
-                'image': bytes_feature(compat.as_bytes(img.tostring()))
-            }
+            if img is not None:
+                feature = {
+                    'label': bytes_feature(compat.as_bytes(img_label)),
+                    'image': bytes_feature(compat.as_bytes(img.tostring()))
+                }
 
-            example = train.Example(features=train.Features(feature=feature))
-            tf_writer.write(example.SerializeToString())
+                example = train.Example(features=train.Features(feature=feature))
+                tf_writer.write(example.SerializeToString())
 
 
 def load_img(img_path, img_data):
@@ -49,10 +50,14 @@ def load_img(img_path, img_data):
     rows, columns, channels = img.shape
     clean_box_data(img_data, rows, columns)
 
-    img = img[int(img_data[1]):int(img_data[3]), int(img_data[0]):int(img_data[2])]
-    img = cv.resize(img, (300, 300), interpolation=cv.INTER_CUBIC)
-    img = img.astype(np.float32)
-    return img
+    try:
+        img = img[int(img_data[1]):int(img_data[3]), int(img_data[0]):int(img_data[2])]
+        img = cv.resize(img, (300, 300), interpolation=cv.INTER_CUBIC)
+        img = img.astype(np.float32)
+        return img
+    except cv.error:
+        print("Unable to process img {}, skipped.".format(img_path))
+        return None
 
 
 def clean_box_data(img_data, img_height, img_width):

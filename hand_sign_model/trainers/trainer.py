@@ -1,6 +1,7 @@
-from base.base_train import BaseTrain
+from hand_sign_model.base.base_train import BaseTrain
 from tqdm import tqdm
 import numpy as np
+
 
 class ExampleTrainer(BaseTrain):
     def __init__(self, sess, model, data, config,logger):
@@ -23,6 +24,7 @@ class ExampleTrainer(BaseTrain):
         summaries_dict['acc'] = acc
         self.logger.summarize(cur_it, summaries_dict=summaries_dict)
         self.model.save(self.sess)
+
     def train_step(self):
         batch_x, batch_y = next(self.data.next_batch(self.config.batch_size))
         feed_dict = {self.model.x: batch_x, self.model.y: batch_y, self.model.is_training: True}
