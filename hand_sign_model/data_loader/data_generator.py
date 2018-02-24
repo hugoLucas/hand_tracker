@@ -1,7 +1,4 @@
 import tensorflow as tf
-import numpy as np
-
-import hand_sign_model.utils.config as conf
 
 
 class DataGenerator():
