@@ -1,7 +1,7 @@
 import numpy as np
 import cv2 as cv
 
-from preprocessing.utils import bytes_feature
+from preprocessing.utils import bytes_feature, int64_feature
 from tensorflow import python_io, compat, train
 from os import listdir, path
 from csv import DictReader
@@ -15,16 +15,23 @@ def process_img_directories():
     test_writer = python_io.TFRecordWriter('./test.tfrecord')
     train_writer = python_io.TFRecordWriter('./train.tfrecord')
 
+    folder_label, label_map = 0, {}
     for folder in listdir(IMG_ROOT_DIR):
         folder_path = path.join(IMG_ROOT_DIR, folder)
         csv_data = load_csv(folder, folder_path)
 
         writer = train_writer if random() < TRAIN_THRESH else test_writer
-        process_folder(folder_path, csv_data, folder, writer)
+        process_folder(folder_path, csv_data, folder_label, writer)
+        label_map[folder] = folder_label
+        folder_label += 1
 
     test_writer.close()
     train_writer.close()
     stdout.flush()
+
+    print('-' * 80)
+    print(label_map)
+    print('-' * 80)
 
 
 def process_folder(folder_path, folder_csv, img_label, tf_writer):
@@ -37,7 +44,7 @@ def process_folder(folder_path, folder_csv, img_label, tf_writer):
             img = load_img(path.join(folder_path, img_name), img_data)
             if img is not None:
                 feature = {
-                    'label': bytes_feature(compat.as_bytes(img_label)),
+                    'label': int64_feature(img_label),
                     'image': bytes_feature(compat.as_bytes(img.tostring()))
                 }
 

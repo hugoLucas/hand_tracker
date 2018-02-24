@@ -24,8 +24,8 @@ class AlexNetTrainer(BaseTrain):
         self.model.save(self.sess)
 
     def train_step(self):
-        batch_x, batch_y = next(self.data.next_batch(self.config.batch_size))
-        input_x = self.sess.run(batch_x)
+        input_x, input_y = self.data.next_batch(self.config.batch_size)
+        input_x, input_y = self.sess.run([input_x, input_y])
         feed_dict = {self.model.x: input_x, self.model.y: input_y, self.model.is_training: True}
         _, loss, acc = self.sess.run([self.model.train_step, self.model.cross_entropy, self.model.accuracy],
                                      feed_dict=feed_dict)

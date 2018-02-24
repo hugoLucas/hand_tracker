@@ -12,23 +12,20 @@ class DataGenerator():
     def next_batch(self, batch_size):
         batch = self.dataset.batch(batch_size)
         iterator = batch.make_one_shot_iterator()
-        images, labels = iterator.get_next()
-        yield images, labels
-
+        return iterator.get_next()
 
     @staticmethod
     def load_image_from_record(serialized):
         features = {
-            'label': tf.FixedLenFeature([], tf.string),
-            'img': tf.FixedLenFeature([], tf.string)
+            'label': tf.FixedLenFeature([], tf.int64),
+            'image': tf.FixedLenFeature([], tf.string)
         }
         parsed_example = tf.parse_single_example(serialized, features)
 
-        image = parsed_example['img']
+        image = parsed_example['image']
         image = tf.decode_raw(image, tf.uint8)
         image = tf.cast(image, tf.float32)
 
         label = parsed_example['label']
 
         return image, label
-
