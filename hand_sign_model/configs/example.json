@@ -4,9 +4,10 @@
   "num_iter_per_epoch": 10,
   "learning_rate": 0.001,
   "batch_size": 16,
-  "state_size": [30, 30],
+  "state_size": [300, 300],
   "max_to_keep":5,
   "num_logits": 3,
   "train_tfrecord": "/home/hugolucas/PycharmProjects/ml_hands/hand_sign_gen/train.tfrecord",
-  "test_tfrecord": "/home/hugolucas/PycharmProjects/ml_hands/hand_sign_gen/test.tfrecord"
+  "test_tfrecord": "/home/hugolucas/PycharmProjects/ml_hands/hand_sign_gen/test.tfrecord",
+  "num_elements": 1000
 }
