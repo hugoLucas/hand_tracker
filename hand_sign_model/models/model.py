@@ -11,7 +11,7 @@ class AlexNet(BaseModel):
     def build_model(self):
         self.is_training = tf.placeholder(tf.bool)
         self.x = tf.placeholder(tf.float32, shape=[None] + self.config.state_size + [3])
-        self.y = tf.placeholder(tf.float32, shape=[None, self.config.batch_size])
+        self.y = tf.placeholder(tf.float32, shape=[self.config.batch_size, self.config.num_logits])
 
         with tf.name_scope("convolutional_layers"):
             self.conv_1 = tf.layers.conv2d(inputs=self.x, filters=96, kernel_size=[11, 11], padding="SAME", strides=4,
