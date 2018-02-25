@@ -43,9 +43,10 @@ def process_folder(folder_path, folder_csv, img_label, tf_writer):
         else:
             img = load_img(path.join(folder_path, img_name), img_data)
             if img is not None:
+                assert img.shape == (300, 300, 3)
                 feature = {
                     'label': int64_feature(img_label),
-                    'image': bytes_feature(compat.as_bytes(img.tostring()))
+                    'image': bytes_feature(img.tostring())
                 }
 
                 example = train.Example(features=train.Features(feature=feature))

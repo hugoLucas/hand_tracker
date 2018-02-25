@@ -6,8 +6,9 @@ class DataGenerator():
         self.config = config
         self.dataset = tf.data.TFRecordDataset(filenames=config.train_tfrecord)
         self.dataset = self.dataset.map(self.load_image_from_record)
-        self.dataset.repeat(None)
+        self.dataset.repeat(1)
         self.dataset = self.dataset.shuffle(buffer_size=config.num_elements)
+
 
     def next_batch(self, batch_size):
         batch = self.dataset.batch(batch_size)
@@ -22,10 +23,8 @@ class DataGenerator():
         }
         parsed_example = tf.parse_single_example(serialized, features)
 
-        image = parsed_example['image']
-        image = tf.decode_raw(image, tf.uint8)
-        image = tf.cast(image, tf.float32)
-
+        image = tf.decode_raw(parsed_example['image'], tf.float32)
+        image = tf.reshape(image, [300, 300, 3])
         label = parsed_example['label']
 
         return image, label

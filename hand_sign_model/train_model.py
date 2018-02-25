@@ -10,7 +10,7 @@ init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initial
 
 model = model.AlexNet(config=configs)
 data = data_generator.DataGenerator(config=configs)
-input_x, input_y = data.next_batch(batch_size=10)
+input_x, input_y = data.next_batch(batch_size=configs.batch_size)
 
 with tf.Session() as sess:
     sess.run(init_op)
