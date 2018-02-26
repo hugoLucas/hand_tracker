@@ -27,7 +27,7 @@ class BaseTrain:
         """
         raise NotImplementedError
 
-    def train_step(self):
+    def train_step(self, input_x, input_y):
         """
         implement the logic of the train step
         - run the tensorflow session

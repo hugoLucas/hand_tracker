@@ -10,11 +10,9 @@ class BaseModel:
         # init the epoch counter
         self.init_cur_epoch()
 
-    # save function thet save the checkpoint in the path defined in configfile
+    # save function that save the checkpoint in the path defined in configfile
     def save(self, sess):
-        print("Saving model...")
-        self.saver.save(sess, self.config.checkpoint_dir, self.global_step_tensor)
-        print("Model saved")
+        self.saver.save(sess, os.path.join(self.config.checkpoint_dir, 'my_model'), self.global_step_tensor)
 
     # load lateset checkpoint from the experiment path defined in config_file
     def load(self, sess):

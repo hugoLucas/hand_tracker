@@ -11,27 +11,27 @@ class AlexNet(BaseModel):
     def build_model(self):
         self.is_training = tf.placeholder(tf.bool)
         self.x = tf.placeholder(tf.float32, shape=[None] + self.config.state_size + [3])
-        self.y = tf.placeholder(tf.float32, shape=[self.config.batch_size, self.config.num_logits])
+        self.y = tf.placeholder(tf.float32, shape=[None, self.config.num_logits])
 
         with tf.name_scope("convolutional_layers"):
             self.conv_1 = tf.layers.conv2d(inputs=self.x, filters=96, kernel_size=[11, 11], padding="SAME", strides=4,
                                            activation=tf.nn.relu)
             self.pool_2 = tf.layers.max_pooling2d(inputs=self.conv_1, pool_size=[3, 3], strides=2, padding='VALID')
-            self.conv_3 = tf.layers.conv2d(inputs=self.pool_2, filters=200, kernel_size=[5, 5], padding="SAME",
+            self.conv_3 = tf.layers.conv2d(inputs=self.pool_2, filters=256, kernel_size=[5, 5], padding="SAME",
                                            strides=1, activation=tf.nn.relu)
             self.pool_4 = tf.layers.max_pooling2d(inputs=self.conv_3, pool_size=[3, 3], strides=2, padding='VALID')
-            self.conv_5 = tf.layers.conv2d(inputs=self.pool_4, filters=300, kernel_size=[3, 3], padding="SAME",
+            self.conv_5 = tf.layers.conv2d(inputs=self.pool_4, filters=384, kernel_size=[3, 3], padding="SAME",
                                            strides=1, activation=tf.nn.relu)
-            self.conv_6 = tf.layers.conv2d(inputs=self.conv_5, filters=300, kernel_size=[3, 3], padding="SAME",
+            self.conv_6 = tf.layers.conv2d(inputs=self.conv_5, filters=384, kernel_size=[3, 3], padding="SAME",
                                            strides=1, activation=tf.nn.relu)
-            self.conv_7 = tf.layers.conv2d(inputs=self.conv_6, filters=200, kernel_size=[3, 3], padding="SAME",
+            self.conv_7 = tf.layers.conv2d(inputs=self.conv_6, filters=256, kernel_size=[3, 3], padding="SAME",
                                            strides=1, activation=tf.nn.relu)
 
         with tf.name_scope("connected_layers"):
             flatten_8 = tf.contrib.layers.flatten(self.conv_7)
-            layer_8 = tf.layers.dense(inputs=flatten_8, units=100, activation=tf.nn.relu)
+            layer_8 = tf.layers.dense(inputs=flatten_8, units=4096, activation=tf.nn.relu)
             self.dense_8 = tf.layers.dropout(inputs=layer_8, rate=0.5, training=self.is_training)
-            layer_9 = tf.layers.dense(inputs=self.dense_8, units=100, activation=tf.nn.relu)
+            layer_9 = tf.layers.dense(inputs=self.dense_8, units=4096, activation=tf.nn.relu)
             self.dense_9 = tf.layers.dropout(inputs=layer_9, rate=0.5, training=self.is_training)
             self.logits = tf.layers.dense(inputs=self.dense_9, units=self.config.num_logits)
 

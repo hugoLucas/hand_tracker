@@ -1,18 +1,21 @@
 import tensorflow as tf
 
 
-class DataGenerator():
+class DataGenerator:
     def __init__(self, config):
         self.config = config
-        self.dataset = tf.data.TFRecordDataset(filenames=config.train_tfrecord)
-        self.dataset = self.dataset.map(self.load_image_from_record)
-        self.dataset.repeat(1)
-        self.dataset = self.dataset.shuffle(buffer_size=config.num_elements)
+        self.data = None
 
     def next_batch(self, batch_size):
-        batch = self.dataset.batch(batch_size)
+        batch = self.data.batch(batch_size)
         iterator = batch.make_one_shot_iterator()
         return iterator.get_next()
+
+    def configure_dataset(self, source_record, repeat=None):
+        self.data = tf.data.TFRecordDataset(filenames=source_record)
+        self.data = self.data.map(self.load_image_from_record)
+        self.data.repeat(repeat)
+        self.data = self.data.shuffle(buffer_size=self.config.num_elements)
 
     def load_image_from_record(self, serialized):
         features = {
@@ -28,3 +31,15 @@ class DataGenerator():
         label = tf.one_hot(indices=label, depth=self.config.num_logits)
 
         return image, label
+
+
+class TrainingDataGenerator(DataGenerator):
+    def __init__(self, config):
+        super(TrainingDataGenerator, self).__init__(config)
+        self.configure_dataset(source_record=self.config.train_tfrecord)
+
+
+class TestDataGenerator(DataGenerator):
+    def __init__(self, config):
+        super(TestDataGenerator, self).__init__(config)
+        self.configure_dataset(source_record=self.config.test_tfrecord)

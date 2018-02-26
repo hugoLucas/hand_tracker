@@ -16,12 +16,14 @@ def process_img_directories():
     train_writer = python_io.TFRecordWriter('./train.tfrecord')
 
     folder_label, label_map = 0, {}
+    ex_tst, ex_trn = 0, 0
     for folder in listdir(IMG_ROOT_DIR):
         folder_path = path.join(IMG_ROOT_DIR, folder)
         csv_data = load_csv(folder, folder_path)
 
-        writer = train_writer if random() < TRAIN_THRESH else test_writer
-        process_folder(folder_path, csv_data, folder_label, writer)
+        n_test, n_train = process_folder(folder_path, csv_data, folder_label, test_writer, train_writer)
+        ex_tst, ex_trn = ex_tst + n_test, ex_trn + n_train
+
         label_map[folder] = folder_label
         folder_label += 1
 
@@ -32,10 +34,14 @@ def process_img_directories():
     print('-' * 80)
     print(label_map)
     print('-' * 80)
+    print('Number of training examples: ', ex_trn)
+    print('Number of testing examples: ', ex_tst)
 
 
-def process_folder(folder_path, folder_csv, img_label, tf_writer):
+def process_folder(folder_path, folder_csv, img_label, test_writer, train_writer):
     folder_files = filter(lambda f: f.endswith('.jpg'), listdir(folder_path))
+
+    ex_test, ex_train = 0, 0
     for img_name in folder_files:
         img_data = folder_csv.get(img_name, None)
         if img_data is None:
@@ -50,8 +56,13 @@ def process_folder(folder_path, folder_csv, img_label, tf_writer):
                 }
 
                 example = train.Example(features=train.Features(feature=feature))
-                tf_writer.write(example.SerializeToString())
-
+                if put_in_training_set():
+                    train_writer.write(example.SerializeToString())
+                    ex_train += 1
+                else:
+                    test_writer.write(example.SerializeToString())
+                    ex_test += 1
+    return ex_test, ex_train
 
 def load_img(img_path, img_data):
     img = cv.imread(img_path)
@@ -92,5 +103,7 @@ def load_csv(csv_label, csv_path):
             csv_data[row_key] = row_data
     return csv_data
 
+def put_in_training_set():
+    return random() < TRAIN_THRESH
 
 process_img_directories()

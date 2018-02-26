@@ -1,13 +1,15 @@
 {
   "exp_name": "example",
-  "num_epochs": 10,
-  "num_iter_per_epoch": 10,
+  "num_epochs": 200,
+  "num_iter_per_epoch": 200,
+  "test_iters": 20,
   "learning_rate": 0.001,
-  "batch_size": 10,
+  "batch_size": 1,
   "state_size": [300, 300],
   "max_to_keep":5,
   "num_logits": 3,
   "train_tfrecord": "/home/hugolucas/PycharmProjects/ml_hands/hand_sign_gen/train.tfrecord",
   "test_tfrecord": "/home/hugolucas/PycharmProjects/ml_hands/hand_sign_gen/test.tfrecord",
-  "num_elements": 1000
+  "num_elements": 1000,
+  "checkpoint_dir": "/home/hugolucas/PycharmProjects/ml_hands/saved_models"
 }
